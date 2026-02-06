@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D জীবের আবাসস্থল - প্রাথমিক বিজ্ঞান</title>
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { margin: 0; overflow: hidden; font-family: 'Hind Siliguri', sans-serif; background: linear-gradient(to bottom, #87CEEB, #E0F7FA); }
+        
+        /* Instruction Overlay */
+        #instruction {
+            position: absolute;
+            top: 20px;
+            width: 100%;
+            text-align: center;
+            color: #1f2937;
+            pointer-events: none; /* Let clicks pass through */
+            text-shadow: 1px 1px 2px rgba(255,255,255,0.5);
+        }
+        #instruction h1 { margin: 0; font-size: 2rem; color: #065f46; }
+        #instruction p { font-size: 1.1rem; }
+
+        /* Info Panel (Hidden initially) */
+        #info-panel {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 25px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            max-width: 400px;
+            text-align: center;
+            display: none; /* Hidden by default */
+            border: 3px solid #34d399;
+            transition: all 0.3s ease;
+        }
+        #info-panel h2 { margin: 0 0 10px 0; color: #059669; }
+        #info-panel p { color: #374151; line-height: 1.5; }
+        .close-btn {
+            margin-top: 15px;
+            padding: 8px 20px;
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="instruction">
+        <h1>🌍 জীবের বিভিন্ন আবাসস্থল</h1>
+        <p>মাউস দিয়ে ঘুরিয়ে দেখুন এবং তথ্য জানতে যেকোনো একটি পরিবেশে ক্লিক করুন।</p>
+    </div>
+
+    <div id="info-panel">
+        <h2 id="panel-title">শিরোনাম</h2>
+        <p id="panel-desc">বিবরণ...</p>
+        <button class="close-btn" onclick="closePanel()">বন্ধ করুন</button>
+    </div>
+
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+        let scene, camera, renderer, controls, raycaster, mouse;
+        let forestGroup, desertGroup, waterGroup;
+        let habitats = []; // Array to store interactable objects
+
+        // Habitat Data used for the info panel
+        const habitatData = {
+            forest: {
+                title: "🌳 বনভূমি (Forest)",
+                desc: "বনভূমি হলো গাছপালা ঘেরা বিশাল এলাকা। এখানে বাঘ, হরিণ, বানর এবং নানা ধরণের পাখি বাস করে। এখানকার পরিবেশ সাধারণত সবুজ এবং আর্দ্র থাকে।"
+            },
+            desert: {
+                title: "🌵 মরুভূমি (Desert)",
+                desc: "মরুভূমি হলো শুষ্ক ও বালুময় এলাকা যেখানে বৃষ্টিপাত খুব কম। এখানে উট, ক্যাকটাস এবং সাপের মতো প্রাণী ও উদ্ভিদ দেখা যায় যারা কম পানিতে বাঁচতে পারে।"
+            },
+            water: {
+                title: "💧 জলাশয় (Water Body)",
+                desc: "পুকুর, নদী বা বিল হলো জলজ জীবের আবাসস্থল। এখানে মাছ, ব্যাঙ, কাঁকড়া এবং শাপলার মতো জলজ উদ্ভিদ বসবাস করে।"
+            }
+        };
+
+        init();
+        animate();
+
+        function init() {
+            // 1. Scene Setup
+            scene = new THREE.Scene();
+            // Use fog to blend the horizon slightly
+            scene.fog = new THREE.FogExp2(0xE0F7FA, 0.002);
+
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 20, 60);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); // Alpha true for CSS gradient background
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColor(0x000000, 0); // Transparent clear color
+            document.body.appendChild(renderer.domElement);
+
+            // Controls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.maxPolarAngle = Math.PI / 2 - 0.1; // Prevent going below ground
+
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(50, 50, 50);
+            scene.add(dirLight);
+
+            // Raycaster for clicking interaction
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2();
+
+            // --- BUILD HABITATS ---
+            createForestHabitat();
+            createDesertHabitat();
+            createWaterHabitat();
+
+            // Event Listeners
+            window.addEventListener('resize', onWindowResize);
+            window.addEventListener('click', onMouseClick);
+        }
+
+        // --- Helper Functions for Geometry ---
+        function createBase(color, xPos) {
+            const geometry = new THREE.CylinderGeometry(12, 10, 3, 32);
+            const material = new THREE.MeshLambertMaterial({ color: color });
+            const base = new THREE.Mesh(geometry, material);
+            base.position.set(xPos, 0, 0);
+            base.userData.isBase = true; // Flag for raycaster
+            return base;
+        }
+
+        // --- 1. Forest Creation ---
+        function createForestHabitat() {
+            forestGroup = new THREE.Group();
+            const base = createBase(0x2e7d32, -30); // Green Base
+            base.userData.habitatType = 'forest';
+            forestGroup.add(base);
+            habitats.push(base);
+
+            // Add simplistic trees
+            for(let i=0; i<8; i++) {
+                const trunkGeo = new THREE.CylinderGeometry(0.5, 0.8, 3, 8);
+                const trunkMat = new THREE.MeshLambertMaterial({color: 0x795548});
+                const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+                
+                const topGeo = new THREE.ConeGeometry(2.5, 6, 8);
+                const topMat = new THREE.MeshLambertMaterial({color: 0x388e3c});
+                const top = new THREE.Mesh(topGeo, topMat);
+                top.position.y = 4.5;
+                
+                const tree = new THREE.Group();
+                tree.add(trunk);
+                tree.add(top);
+
+                // Random position on the base circle
+                const angle = Math.random() * Math.PI * 2;
+                const radius = Math.random() * 8;
+                tree.position.set(Math.cos(angle)*radius, 2, Math.sin(angle)*radius);
+                tree.scale.setScalar(0.8 + Math.random()*0.4); // Vary sizes
+                
+                base.add(tree); // Add to base so they move together
+            }
+            scene.add(forestGroup);
+        }
+
+        // --- 2. Desert Creation ---
+        function createDesertHabitat() {
+            desertGroup = new THREE.Group();
+            const base = createBase(0xfdd835, 0); // Yellow/Sand Base
+            base.userData.habitatType = 'desert';
+            desertGroup.add(base);
+            habitats.push(base);
+
+            // Add simplistic Cactus
+            for(let i=0; i<5; i++) {
+                const cactusGeo = new THREE.CapsuleGeometry(1, 4, 8, 16);
+                const cactusMat = new THREE.MeshLambertMaterial({color: 0x66bb6a});
+                const cactus = new THREE.Mesh(cactusGeo, cactusMat);
+                
+                // Random position
+                const angle = Math.random() * Math.PI * 2;
+                const radius = Math.random() * 8;
+                cactus.position.set(Math.cos(angle)*radius, 3, Math.sin(angle)*radius);
+                cactus.scale.setScalar(0.7 + Math.random()*0.5);
+                
+                base.add(cactus);
+            }
+             // Add some rocks/stones
+             for(let i=0; i<6; i++) {
+                const rockGeo = new THREE.DodecahedronGeometry(0.8);
+                const rockMat = new THREE.MeshLambertMaterial({color: 0xa1887f});
+                const rock = new THREE.Mesh(rockGeo, rockMat);
+                const angle = Math.random() * Math.PI * 2;
+                const radius = Math.random() * 9;
+                rock.position.set(Math.cos(angle)*radius, 1.5, Math.sin(angle)*radius);
+                rock.rotation.set(Math.random(), Math.random(), Math.random());
+                base.add(rock);
+             }
+
+            scene.add(desertGroup);
+        }
+
+        // --- 3. Water Creation ---
+        function createWaterHabitat() {
+            waterGroup = new THREE.Group();
+            // Use a slightly transparent material for water base
+            const baseGeometry = new THREE.CylinderGeometry(12, 10, 3, 32);
+            const baseMaterial = new THREE.MeshPhongMaterial({ color: 0x4fc3f7, transparent: true, opacity: 0.8, shininess: 100 });
+            const base = new THREE.Mesh(baseGeometry, baseMaterial);
+            base.position.set(30, 0, 0);
+            base.userData.habitatType = 'water';
+            waterGroup.add(base);
+            habitats.push(base);
+
+            // Add Lily Pads
+            for(let i=0; i<4; i++) {
+                const lilyGeo = new THREE.CircleGeometry(2, 16);
+                const lilyMat = new THREE.MeshBasicMaterial({color: 0x4db6ac, side: THREE.DoubleSide});
+                const lily = new THREE.Mesh(lilyGeo, lilyMat);
+                lily.rotation.x = -Math.PI / 2; // Lay flat
+                
+                const angle = Math.random() * Math.PI * 2;
+                const radius = Math.random() * 7;
+                lily.position.set(Math.cos(angle)*radius, 1.6, Math.sin(angle)*radius);
+                base.add(lily);
+            }
+
+            // Add a simple Fish representative (stretched sphere)
+            const fishGeo = new THREE.SphereGeometry(1, 16, 16);
+            const fishMat = new THREE.MeshLambertMaterial({color: 0xff5722});
+            const fish = new THREE.Mesh(fishGeo, fishMat);
+            fish.scale.set(1.5, 0.8, 0.6);
+            fish.position.set(0, 2, 4);
+            base.add(fish);
+
+            scene.add(waterGroup);
+        }
+
+
+        // --- Interaction Functions ---
+        function onMouseClick(event) {
+            // Calculate mouse position in normalized device coordinates (-1 to +1)
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+
+            // Check intersections with the habitat bases array
+            const intersects = raycaster.intersectObjects(habitats);
+
+            if (intersects.length > 0) {
+                const clickedObject = intersects[0].object;
+                // Check if we clicked a base and it has a type
+                if(clickedObject.userData.isBase && clickedObject.userData.habitatType) {
+                    showInfoPanel(clickedObject.userData.habitatType);
+                    
+                    // Optional: Little bump animation on click
+                    clickedObject.position.y -= 0.5;
+                    setTimeout(() => { clickedObject.position.y += 0.5; }, 200);
+                }
+            }
+        }
+
+        function showInfoPanel(type) {
+            const data = habitatData[type];
+            document.getElementById('panel-title').innerText = data.title;
+            document.getElementById('panel-desc').innerText = data.desc;
+            const panel = document.getElementById('info-panel');
+            panel.style.display = 'block';
+            // Small animation to make it pop
+            panel.style.transform = 'translateX(-50%) scale(0.8)';
+            setTimeout(() => {
+                panel.style.transform = 'translateX(-50%) scale(1)';
+                panel.style.opacity = '1';
+            }, 10);
+        }
+
+        function closePanel() {
+            document.getElementById('info-panel').style.display = 'none';
+        }
+        // Expose closePanel to global scope so button onclick can see it
+        window.closePanel = closePanel;
+
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // --- Animation Loop ---
+        function animate() {
+            requestAnimationFrame(animate);
+            const time = Date.now() * 0.001; // Time for smooth sine wave movement
+
+            // Gentle floating animation
+            forestGroup.position.y = Math.sin(time) * 0.5;
+            desertGroup.position.y = Math.sin(time + 1) * 0.5; // Offset time for different rhythm
+            waterGroup.position.y = Math.sin(time + 2) * 0.5;
+
+            // Slow Rotation
+            forestGroup.rotation.y += 0.002;
+            desertGroup.rotation.y -= 0.003;
+            waterGroup.rotation.y += 0.001;
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
+</html>
