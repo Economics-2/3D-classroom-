@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>পদার্থ ও শক্তি ল্যাব</title>
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --secondary: #10b981;
+            --accent: #f59e0b;
+            --bg: #f3f4f6;
+        }
+
+        body {
+            font-family: 'Hind Siliguri', sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #1f2937;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary), #4f46e5);
+            color: white;
+            width: 100%;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        header h1 { margin: 0; font-size: 1.8rem; }
+        header p { opacity: 0.9; font-size: 0.9rem; }
+
+        /* Navigation Tabs */
+        .tabs {
+            display: flex;
+            margin: 20px 0;
+            background: white;
+            padding: 5px;
+            border-radius: 50px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .tab-btn {
+            padding: 10px 25px;
+            border: none;
+            background: transparent;
+            font-family: inherit;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 40px;
+            transition: 0.3s;
+            color: #6b7280;
+        }
+
+        .tab-btn.active {
+            background-color: var(--primary);
+            color: white;
+            box-shadow: 0 2px 10px rgba(99, 102, 241, 0.4);
+        }
+
+        /* Container for Sections */
+        .lab-container {
+            width: 90%;
+            max-width: 800px;
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            min-height: 450px;
+            position: relative;
+        }
+
+        .section { display: none; text-align: center; }
+        .section.active { display: block; animation: fadeIn 0.5s; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* --- SECTION 1: MATTER STYLES --- */
+        .microscope-view {
+            width: 300px;
+            height: 300px;
+            background: #e0e7ff;
+            border-radius: 50%;
+            margin: 0 auto 20px auto;
+            border: 8px solid #c7d2fe;
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.1);
+        }
+
+        canvas { display: block; }
+
+        .matter-controls button {
+            background: white;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+            padding: 8px 15px;
+            margin: 0 5px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-family: inherit;
+            transition: 0.2s;
+        }
+
+        .matter-controls button:hover, .matter-controls button.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .description-box {
+            background: #fef3c7;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            border-left: 5px solid var(--accent);
+            text-align: left;
+        }
+
+        /* --- SECTION 2: ENERGY STYLES --- */
+        .energy-scene {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 40px 0;
+        }
+
+        .device {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            opacity: 0.6;
+            transition: 0.3s;
+        }
+        .device.on { opacity: 1; }
+
+        /* Bulb Icon */
+        .bulb {
+            font-size: 4rem;
+            color: #94a3b8;
+            transition: 0.3s;
+            text-shadow: 0 0 0 transparent;
+        }
+        .device.on .bulb {
+            color: #fbbf24;
+            text-shadow: 0 0 30px #fbbf24;
+        }
+
+        /* Switch Style */
+        .switch-container {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+            margin-top: 10px;
+        }
+        .switch-container input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider { background-color: var(--secondary); }
+        input:checked + .slider:before { transform: translateX(26px); }
+
+        /* Fan Animation */
+        .fan-blades {
+            font-size: 4rem;
+            color: #3b82f6;
+        }
+        .device.on .fan-blades {
+            animation: spin 0.5s linear infinite;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        .energy-flow-text {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--primary);
+            min-height: 30px;
+            margin-top: 20px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>🧪 পদার্থের গঠন ও শক্তি</h1>
+        <p>পঞ্চম শ্রেণি | প্রাথমিক বিজ্ঞান</p>
+    </header>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('matter')">পদার্থের গঠন</button>
+        <button class="tab-btn" onclick="switchTab('energy')">শক্তির রূপান্তর</button>
+    </div>
+
+    <div class="lab-container">
+        
+        <div id="matter-section" class="section active">
+            <h2>পদার্থের কণাগুলো কেমন আচরণ করে?</h2>
+            
+            <div class="microscope-view">
+                <canvas id="particleCanvas" width="300" height="300"></canvas>
+            </div>
+
+            <div class="matter-controls">
+                <button onclick="setMatterState('solid')" id="btn-solid" class="active">🧊 কঠিন (Solid)</button>
+                <button onclick="setMatterState('liquid')" id="btn-liquid">💧 তরল (Liquid)</button>
+                <button onclick="setMatterState('gas')" id="btn-gas">💨 বায়বীয় (Gas)</button>
+            </div>
+
+            <div class="description-box">
+                <strong id="state-title">কঠিন পদার্থ:</strong>
+                <p id="state-desc">কণাগুলো খুব কাছাকাছি থাকে এবং নিজেদের জায়গায় কাঁপতে থাকে। এদের নির্দিষ্ট আকার ও আয়তন আছে।</p>
+            </div>
+        </div>
+
+        <div id="energy-section" class="section">
+            <h2>শক্তি এক রূপ থেকে অন্য রূপে যায়</h2>
+            <p>সুইচ অন করে দেখো কী ঘটে!</p>
+
+            <div class="energy-scene">
+                <div class="device" id="bulb-device">
+                    <div class="bulb">💡</div>
+                    <label class="switch-container">
+                        <input type="checkbox" onchange="toggleEnergy('bulb', this)">
+                        <span class="slider"></span>
+                    </label>
+                    <p>বৈদ্যুতিক বাতি</p>
+                </div>
+
+                <div class="device" id="fan-device">
+                    <div class="fan-blades">❄️</div>
+                    <label class="switch-container">
+                        <input type="checkbox" onchange="toggleEnergy('fan', this)">
+                        <span class="slider"></span>
+                    </label>
+                    <p>বৈদ্যুতিক পাখা</p>
+                </div>
+            </div>
+
+            <div class="energy-flow-text" id="energy-text">
+                কোনো ডিভাইস চালু করা হয়নি
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- TAB SWITCHING ---
+        function switchTab(tab) {
+            document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            
+            if(tab === 'matter') {
+                document.getElementById('matter-section').classList.add('active');
+                document.querySelector('button[onclick="switchTab(\'matter\')"]').classList.add('active');
+                startSimulation(); // Restart canvas
+            } else {
+                document.getElementById('energy-section').classList.add('active');
+                document.querySelector('button[onclick="switchTab(\'energy\')"]').classList.add('active');
+                stopSimulation(); // Stop canvas to save resources
+            }
+        }
+
+        // --- MATTER SIMULATION (CANVAS) ---
+        const canvas = document.getElementById('particleCanvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        let animationId;
+        let currentState = 'solid';
+
+        class Particle {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.baseX = x; // Original position for solids
+                this.baseY = y;
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = (Math.random() - 0.5) * 2;
+                this.radius = 8;
+                this.color = '#4f46e5';
+            }
+
+            update() {
+                if (currentState === 'solid') {
+                    // Jitter around base position
+                    this.x = this.baseX + (Math.random() - 0.5) * 3;
+                    this.y = this.baseY + (Math.random() - 0.5) * 3;
+                } 
+                else if (currentState === 'liquid') {
+                    // Gravity + Bouncing but staying mostly lower
+                    this.x += this.vx;
+                    this.y += this.vy + 0.5; // Slight gravity
+
+                    // Floor collision
+                    if(this.y > canvas.height - this.radius) {
+                        this.y = canvas.height - this.radius;
+                        this.vy *= -0.8; // Dampening
+                    }
+                    // Wall collision
+                    if(this.x > canvas.width - this.radius || this.x < this.radius) {
+                        this.vx *= -1;
+                    }
+                    // Ceiling (for liquid, prevent flying too high)
+                    if(this.y < canvas.height / 2) {
+                        this.vy += 0.2; // Push down
+                    }
+                } 
+                else if (currentState === 'gas') {
+                    // Fast movement, no gravity
+                    this.x += this.vx * 3;
+                    this.y += this.vy * 3;
+
+                    // Bounce off all walls
+                    if(this.x > canvas.width - this.radius || this.x < this.radius) this.vx *= -1;
+                    if(this.y > canvas.height - this.radius || this.y < this.radius) this.vy *= -1;
+                }
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                
+                // Add a shine
+                ctx.fillStyle = 'rgba(255,255,255,0.4)';
+                ctx.beginPath();
+                ctx.arc(this.x - 2, this.y - 2, 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function initParticles(state) {
+            particles = [];
+            currentState = state;
+            
+            const rows = 6;
+            const cols = 6;
+            const spacing = 40;
+            const offsetX = (canvas.width - (cols * spacing)) / 2 + 20;
+            const offsetY = (canvas.height - (rows * spacing)) / 2 + 20;
+
+            for (let i = 0; i < cols; i++) {
+                for (let j = 0; j < rows; j++) {
+                    particles.push(new Particle(offsetX + i * spacing, offsetY + j * spacing));
+                }
+            }
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            animationId = requestAnimationFrame(animate);
+        }
+
+        function startSimulation() {
+            if (!animationId) {
+                initParticles(currentState);
+                animate();
+            }
+        }
+        
+        function stopSimulation() {
+            cancelAnimationFrame(animationId);
+            animationId = null;
+        }
+
+        function setMatterState(state) {
+            currentState = state;
+            
+            // UI Updates
+            document.querySelectorAll('.matter-controls button').forEach(b => b.classList.remove('active'));
+            document.getElementById(`btn-${state}`).classList.add('active');
+
+            const title = document.getElementById('state-title');
+            const desc = document.getElementById('state-desc');
+
+            if(state === 'solid') {
+                title.innerText = "কঠিন পদার্থ:";
+                desc.innerText = "কণাগুলো খুব কাছাকাছি থাকে এবং শক্তভাবে আবদ্ধ থাকে। শুধু নিজেদের জায়গায় কাঁপতে পারে।";
+                initParticles('solid'); // Re-align for visual clarity
+            } else if(state === 'liquid') {
+                title.innerText = "তরল পদার্থ:";
+                desc.innerText = "কণাগুলোর মধ্যে কিছুটা ফাঁক থাকে। এরা নড়াচড়া করতে পারে, তাই তরল প্রবাহিত হয়।";
+            } else {
+                title.innerText = "বায়বীয় পদার্থ:";
+                desc.innerText = "কণাগুলো একে অপরের থেকে অনেক দূরে থাকে এবং খুব দ্রুত সবদিকে ছড়িয়ে পড়ে।";
+            }
+        }
+
+        // Initialize Matter simulation on load
+        setMatterState('solid');
+        startSimulation();
+
+
+        // --- ENERGY LOGIC ---
+        function toggleEnergy(device, checkbox) {
+            const devEl = document.getElementById(`${device}-device`);
+            const textEl = document.getElementById('energy-text');
+
+            if (checkbox.checked) {
+                // Turn OFF the other one to avoid confusion (optional, simpler for kids)
+                if(device === 'bulb') {
+                    document.querySelector('#fan-device input').checked = false;
+                    document.getElementById('fan-device').classList.remove('on');
+                    
+                    devEl.classList.add('on');
+                    textEl.innerText = "⚡ বিদ্যুৎ শক্তি → 🔥 তাপ ও 💡 আলোক শক্তিতে রূপান্তরিত হচ্ছে।";
+                    textEl.style.color = "#f59e0b";
+                } else {
+                    document.querySelector('#bulb-device input').checked = false;
+                    document.getElementById('bulb-device').classList.remove('on');
+
+                    devEl.classList.add('on');
+                    textEl.innerText = "⚡ বিদ্যুৎ শক্তি → ⚙️ যান্ত্রিক শক্তিতে (বাতাস) রূপান্তরিত হচ্ছে।";
+                    textEl.style.color = "#3b82f6";
+                }
+            } else {
+                devEl.classList.remove('on');
+                textEl.innerText = "সুইচ অন করে শক্তি রূপান্তর দেখো।";
+                textEl.style.color = "var(--primary)";
+            }
+        }
+
+    </script>
+</body>
+</html>
