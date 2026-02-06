@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ইন্টারঅ্যাক্টিভ মানবদেহ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-color: #FF5722; /* Hotspot color */
+            --modal-bg: #ffffff;
+            --text-color: #333;
+        }
+
+        body {
+            font-family: 'Hind Siliguri', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f2f5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            text-align: center;
+            color: #1a237e;
+            margin-bottom: 10px;
+        }
+
+        p.subtitle {
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 30px;
+        }
+
+        /* --- Main Diagram Container --- */
+        .diagram-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px; /* Optimal width for typical mobile view */
+            margin: 0 auto;
+            border: 2px solid #e0e0e0;
+            border-radius: 15px;
+            overflow: hidden;
+            background: white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .body-image {
+            width: 100%;
+            height: auto;
+            display: block;
+            opacity: 0.8;
+        }
+
+        /* --- Hotspots (The Clickable Markers) --- */
+        .hotspot {
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            background-color: var(--primary-color);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 0 rgba(255, 87, 34, 0.4);
+            animation: pulse 2s infinite;
+            border: 2px solid white;
+            transform: translate(-50%, -50%); /* Center the point exactly on coordinate */
+            z-index: 10;
+        }
+
+        .hotspot:hover {
+            animation: none;
+            transform: translate(-50%, -50%) scale(1.2);
+        }
+
+        /* Pulsing Animation for Markers */
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 87, 34, 0.7); }
+            70% { box-shadow: 0 0 0 15px rgba(255, 87, 34, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 87, 34, 0); }
+        }
+
+        /* Positions for Organs (Percentage based for responsiveness) */
+        /* Note: These positions are estimates based on the placeholder image */
+        #spot-brain { top: 10%; left: 50%; }
+        #spot-lungs { top: 30%; left: 50%; }
+        #spot-heart { top: 35%; left: 55%; } /* Slightly left of center biologically, but right on diagram */
+        #spot-liver { top: 45%; left: 40%; }
+        #spot-stomach { top: 48%; left: 60%; }
+
+
+        /* --- Modal (Popup) Styles --- */
+        .modal-overlay {
+            display: none; /* Hidden by default */
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); /* Semi-transparent dark background */
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+            backdrop-filter: blur(3px);
+        }
+
+        .modal-content {
+            background: var(--modal-bg);
+            padding: 25px;
+            border-radius: 15px;
+            width: 100%;
+            max-width: 500px; /* Won't get too wide on tablets */
+            position: relative;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            animation: slideUp 0.3s ease-out;
+            max-height: 80vh; /* Ensure it fits on small screens */
+            overflow-y: auto; /* Scroll if content is long */
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 2rem;
+            color: #999;
+            cursor: pointer;
+            line-height: 1;
+        }
+        .close-btn:hover { color: #FF5722; }
+
+        .modal-title {
+            margin-top: 0;
+            color: var(--primary-color);
+            font-size: 1.8rem;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        .modal-body {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            color: #444;
+        }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>মানবদেহের প্রধান অঙ্গসমূহ</h1>
+        <p class="subtitle">বিস্তারিত জানতে লাল চিহ্নিত স্থানগুলোতে ক্লিক করুন</p>
+    </header>
+
+    <div class="diagram-container">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Human_body_silhouette.svg/683px-Human_body_silhouette.svg.png" alt="Human Body Diagram" class="body-image">
+
+        <div class="hotspot" id="spot-brain" data-organ="brain" title="মস্তিষ্ক (Brain)"></div>
+        <div class="hotspot" id="spot-lungs" data-organ="lungs" title="ফুসফুস (Lungs)"></div>
+        <div class="hotspot" id="spot-heart" data-organ="heart" title="হৃৎপিণ্ড (Heart)"></div>
+        <div class="hotspot" id="spot-liver" data-organ="liver" title="যকৃৎ (Liver)"></div>
+        <div class="hotspot" id="spot-stomach" data-organ="stomach" title="পাকস্থলী (Stomach)"></div>
+    </div>
+
+
+    <div class="modal-overlay" id="infoModal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal()">&times;</span>
+            <h2 class="modal-title" id="modalTitle">অঙ্গের নাম</h2>
+            <div class="modal-body" id="modalDescription">
+                </div>
+        </div>
+    </div>
+
+
+    <script>
+        // 1. Data Source: Details for each organ
+        // You can easily add more organs here and add corresponding hotspots in HTML.
+        const organData = {
+            brain: {
+                title: "🧠 মস্তিষ্ক (Brain)",
+                description: "মস্তিষ্ক হলো মানবদেহের নিয়ন্ত্রণ কেন্দ্র। এটি চিন্তাভাবনা, স্মৃতিশক্তি, আবেগ, স্পর্শ, দৃষ্টি এবং শ্বাস-প্রশ্বাসের মতো দেহের সমস্ত কাজ নিয়ন্ত্রণ করে। এটি কোটি কোটি নিউরন দ্বারা গঠিত একটি জটিল অঙ্গ।"
+            },
+            lungs: {
+                title: "🫁 ফুসফুস (Lungs)",
+                description: "ফুসফুস হলো শ্বাসতন্ত্রের প্রধান অঙ্গ। এর প্রধান কাজ হলো বাতাস থেকে অক্সিজেন গ্রহণ করে রক্তে মিশিয়ে দেওয়া এবং রক্ত থেকে কার্বন ডাই অক্সাইড বের করে দেওয়া। এটি বুকেরঁজরের ভেতরে অবস্থিত।"
+            },
+            heart: {
+                title: "❤️ হৃৎপিণ্ড (Heart)",
+                description: "হৃৎপিণ্ড একটি পেশীবহুল পাম্প যা সারা শরীরে রক্ত সঞ্চালন করে। এটি অক্সিজেনযুক্ত রক্ত শরীরের বিভিন্ন অংশে পৌঁছে দেয় এবং অক্সিজেনবিহীন রক্ত ফুসফুসে পাঠায় পরিশোধনের জন্য। এটি অবিরাম স্পন্দিত হতে থাকে।"
+            },
+            liver: {
+                title: "🟤 যকৃৎ (Liver)",
+                description: "যকৃৎ বা কলিজা মানবদেহের সবচেয়ে বড় অভ্যন্তরীণ অঙ্গ। এটি রক্ত থেকে ক্ষতিকারক পদার্থ দূর করে (ডিটক্সিফিকেশন), পিত্তরস তৈরি করে যা হজমে সাহায্য করে এবং শক্তি সঞ্চয় করে রাখে।"
+            },
+            stomach: {
+                title: "🥣 পাকস্থলী (Stomach)",
+                description: "পাকস্থলী হলো পরিপাকতন্ত্রের একটি থলির মতো অঙ্গ। এখানে খাবার সাময়িকভাবে জমা থাকে এবং বিভিন্ন এনজাইম ও এসিডের সাহায্যে খাবার ভেঙে হজম প্রক্রিয়া শুরু হয়।"
+            }
+        };
+
+        // 2. DOM Elements references
+        const modalOverlay = document.getElementById('infoModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalDesc = document.getElementById('modalDescription');
+        const hotspots = document.querySelectorAll('.hotspot');
+
+        // 3. Functions to handle Modal Open/Close
+
+        // Function to open modal with specific content
+        function openModal(organKey) {
+            const data = organData[organKey];
+            
+            if (data) {
+                modalTitle.innerText = data.title;
+                modalDesc.innerText = data.description;
+                
+                // Show the modal using Flexbox centered layout
+                modalOverlay.style.display = 'flex';
+                // Prevent background scrolling when modal is open on mobile
+                document.body.style.overflow = 'hidden';
+            }
+        }
+
+        // Function to close modal
+        function closeModal() {
+            modalOverlay.style.display = 'none';
+            // Restore background scrolling
+            document.body.style.overflow = 'auto';
+        }
+
+        // 4. Event Listeners
+
+        // Add click event to all hotspots
+        hotspots.forEach(spot => {
+            spot.addEventListener('click', function() {
+                const organKey = this.getAttribute('data-organ');
+                openModal(organKey);
+            });
+        });
+
+        // Close modal if clicked outside the modal content box
+        modalOverlay.addEventListener('click', function(e) {
+            if (e.target === modalOverlay) {
+                closeModal();
+            }
+        });
+
+    </script>
+</body>
+</html>
