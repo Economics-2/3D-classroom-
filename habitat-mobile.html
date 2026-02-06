@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>3D জীবের আবাসস্থল</title>
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            font-family: 'Hind Siliguri', sans-serif; 
+            background: linear-gradient(to bottom, #87CEEB, #E0F7FA);
+            touch-action: none; /* Prevents scroll on mobile while rotating 3D */
+        }
+        
+        /* Instruction Overlay */
+        #instruction {
+            position: absolute;
+            top: 10px;
+            width: 100%;
+            text-align: center;
+            color: #1f2937;
+            pointer-events: none;
+            z-index: 10;
+        }
+        #instruction h1 { margin: 0; font-size: 1.5rem; color: #065f46; text-shadow: 1px 1px 0px white; }
+        #instruction p { font-size: 0.9rem; margin: 5px 0 0 0; text-shadow: 1px 1px 0px white; }
+
+        /* Info Panel */
+        #info-panel {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            width: 85%; /* Responsive width for mobile */
+            max-width: 400px;
+            text-align: center;
+            display: none;
+            border: 3px solid #34d399;
+            z-index: 20;
+        }
+        #info-panel h2 { margin: 0 0 10px 0; color: #059669; font-size: 1.2rem; }
+        #info-panel p { color: #374151; line-height: 1.4; font-size: 0.95rem; margin-bottom: 15px; }
+        
+        .close-btn {
+            padding: 8px 25px;
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1rem;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="instruction">
+        <h1>🌍 জীবের আবাসস্থল</h1>
+        <p>ঘুরিয়ে দেখতে টাচ করুন এবং ক্লিক করুন</p>
+    </div>
+
+    <div id="info-panel">
+        <h2 id="panel-title">শিরোনাম</h2>
+        <p id="panel-desc">বিবরণ...</p>
+        <button class="close-btn" onclick="closePanel()">বন্ধ করুন</button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+        let scene, camera, renderer, controls, raycaster, mouse;
+        let forestGroup, desertGroup, waterGroup;
+        let habitats = [];
+
+        // Data
+        const habitatData = {
+            forest: { title: "🌳 বনভূমি (Forest)", desc: "এখানে বাঘ, হরিণ, বানর ও নানা ধরণের পাখি বাস করে। পরিবেশ সবুজ ও আর্দ্র।" },
+            desert: { title: "🌵 মরুভূমি (Desert)", desc: "শুষ্ক ও বালুময় এলাকা। এখানে উট ও ক্যাকটাস দেখা যায়।" },
+            water: { title: "💧 জলাশয় (Water Body)", desc: "মাছ, ব্যাঙ, ও শাপলা পানির নিচে বা উপরে বাস করে।" }
+        };
+
+        init();
+        animate();
+
+        function init() {
+            // 1. Scene
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0xE0F7FA, 0.002);
+
+            // 2. Camera Setup (Fixed for Mobile)
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            
+            // Check if Mobile (Narrow Screen)
+            if (window.innerWidth < 600) {
+                // Mobile: Move camera far back and slightly higher
+                camera.position.set(0, 50, 110); 
+            } else {
+                // Desktop
+                camera.position.set(0, 20, 60);
+            }
+
+            // 3. Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColor(0x000000, 0); 
+            renderer.setPixelRatio(window.devicePixelRatio); // Sharper on mobile
+            document.body.appendChild(renderer.domElement);
+
+            // 4. Controls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.maxPolarAngle = Math.PI / 2 - 0.1; 
+            controls.minDistance = 20;
+            controls.maxDistance = 150;
+
+            // 5. Lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(50, 50, 50);
+            scene.add(dirLight);
+
+            // 6. Raycaster
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2();
+
+            // --- CREATE OBJECTS ---
+            createForestHabitat();
+            createDesertHabitat();
+            createWaterHabitat();
+
+            // Event Listeners
+            window.addEventListener('resize', onWindowResize);
+            
+            // Touch/Click Handling
+            // We use 'pointerdown' to handle both mouse and touch consistently
+            renderer.domElement.addEventListener('pointerdown', onPointerDown);
+        }
+
+        // --- Helper: Create Base ---
+        function createBase(color, xPos) {
+            const geometry = new THREE.CylinderGeometry(12, 10, 3, 32);
+            const material = new THREE.MeshLambertMaterial({ color: color });
+            const base = new THREE.Mesh(geometry, material);
+            base.position.set(xPos, 0, 0);
+            base.userData.isBase = true;
+            return base;
+        }
+
+        // --- Habitat Functions (Same as before) ---
+        function createForestHabitat() {
+            forestGroup = new THREE.Group();
+            const base = createBase(0x2e7d32, -30); 
+            base.userData.habitatType = 'forest';
+            forestGroup.add(base);
+            habitats.push(base);
+
+            for(let i=0; i<8; i++) {
+                const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.8, 3, 8), new THREE.MeshLambertMaterial({color: 0x795548}));
+                const top = new THREE.Mesh(new THREE.ConeGeometry(2.5, 6, 8), new THREE.MeshLambertMaterial({color: 0x388e3c}));
+                top.position.y = 4.5;
+                const tree = new THREE.Group();
+                tree.add(trunk); tree.add(top);
+                const angle = Math.random() * Math.PI * 2;
+                const radius = Math.random() * 8;
+                tree.position.set(Math.cos(angle)*radius, 2, Math.sin(angle)*radius);
+                tree.scale.setScalar(0.8 + Math.random()*0.4);
+                base.add(tree);
+            }
+            scene.add(forestGroup);
+        }
+
+        function createDesertHabitat() {
+            desertGroup = new THREE.Group();
+            const base = createBase(0xfdd835, 0); 
+            base.userData.habitatType = 'desert';
+            desertGroup.add(base);
+            habitats.push(base);
+
+            for(let i=0; i<5; i++) {
+                const cactus = new THREE.Mesh(new THREE.CapsuleGeometry(1, 4, 8, 16), new THREE.MeshLambertMaterial({color: 0x66bb6a}));
+                const angle = Math.random() * Math.PI * 2;
+                const radius = Math.random() * 8;
+                cactus.position.set(Math.cos(angle)*radius, 3, Math.sin(angle)*radius);
+                base.add(cactus);
+            }
+            scene.add(desertGroup);
+        }
+
+        function createWaterHabitat() {
+            waterGroup = new THREE.Group();
+            const base = new THREE.Mesh(new THREE.CylinderGeometry(12, 10, 3, 32), new THREE.MeshPhongMaterial({ color: 0x4fc3f7, transparent: true, opacity: 0.8 }));
+            base.position.set(30, 0, 0);
+            base.userData.habitatType = 'water';
+            waterGroup.add(base);
+            habitats.push(base);
+
+            for(let i=0; i<4; i++) {
+                const lily = new THREE.Mesh(new THREE.CircleGeometry(2, 16), new THREE.MeshBasicMaterial({color: 0x4db6ac, side: THREE.DoubleSide}));
+                lily.rotation.x = -Math.PI / 2;
+                const angle = Math.random() * Math.PI * 2;
+                const radius = Math.random() * 7;
+                lily.position.set(Math.cos(angle)*radius, 1.6, Math.sin(angle)*radius);
+                base.add(lily);
+            }
+            scene.add(waterGroup);
+        }
+
+        // --- Interaction Logic ---
+        function onPointerDown(event) {
+            // Prevent default to avoid scrolling/zooming weirdness on some devices
+            // event.preventDefault(); 
+            
+            // Calculate mouse/touch coordinates
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(habitats);
+
+            if (intersects.length > 0) {
+                const obj = intersects[0].object;
+                if(obj.userData.isBase) {
+                    showInfoPanel(obj.userData.habitatType);
+                    // Small visual feedback
+                    obj.scale.set(1.1, 1.1, 1.1);
+                    setTimeout(() => obj.scale.set(1, 1, 1), 200);
+                }
+            }
+        }
+
+        function showInfoPanel(type) {
+            const data = habitatData[type];
+            document.getElementById('panel-title').innerText = data.title;
+            document.getElementById('panel-desc').innerText = data.desc;
+            document.getElementById('info-panel').style.display = 'block';
+        }
+
+        function closePanel() {
+            document.getElementById('info-panel').style.display = 'none';
+        }
+        window.closePanel = closePanel;
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            
+            // Adjust camera distance dynamically on resize (e.g. rotating phone)
+            if (window.innerWidth < 600) {
+                camera.position.z = 110;
+                camera.position.y = 50;
+            } else {
+                camera.position.z = 60;
+                camera.position.y = 20;
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const time = Date.now() * 0.001;
+            
+            // Floating Animation
+            if(forestGroup) forestGroup.position.y = Math.sin(time) * 0.5;
+            if(desertGroup) desertGroup.position.y = Math.sin(time + 1) * 0.5;
+            if(waterGroup) waterGroup.position.y = Math.sin(time + 2) * 0.5;
+
+            // Rotation
+            if(forestGroup) forestGroup.rotation.y += 0.002;
+            if(desertGroup) desertGroup.rotation.y -= 0.003;
+            if(waterGroup) waterGroup.rotation.y += 0.001;
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
+</html>
