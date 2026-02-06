@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Solar System Explorer</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #000; color: white; font-family: sans-serif; }
+        
+        /* UI Overlay */
+        #info-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #444;
+            max-width: 300px;
+            display: none; /* Initially hidden */
+        }
+        h2 { margin-top: 0; color: #ffd700; }
+        .close-btn {
+            position: absolute;
+            top: 5px;
+            right: 10px;
+            cursor: pointer;
+            color: #ff4444;
+            font-weight: bold;
+        }
+        #instruction {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            text-align: center;
+            pointer-events: none;
+            color: #aaa;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="instruction">গ্রহগুলোতে ক্লিক করে বিস্তারিত দেখুন | জুম এবং রোটেট করতে মাউস ব্যবহার করুন</div>
+
+    <div id="info-panel">
+        <div class="close-btn" onclick="document.getElementById('info-panel').style.display='none'">X</div>
+        <h2 id="p-name">Name</h2>
+        <p id="p-desc">Description</p>
+        <p><small>উপগ্রহ সংখ্যা: <span id="p-moons">0</span></small></p>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+        // --- 1. SETUP ---
+        const scene = new THREE.Scene();
+        // Starfield Background
+        const starGeo = new THREE.BufferGeometry();
+        const starCount = 6000;
+        const starPos = [];
+        for(let i=0; i<starCount*3; i++) starPos.push((Math.random()-0.5)*2000);
+        starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPos, 3));
+        const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({color: 0xffffff, size: 0.5}));
+        scene.add(stars);
+
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 2000);
+        camera.position.set(0, 50, 150);
+
+        const renderer = new THREE.WebGLRenderer({antialias: true});
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+
+        // Lights
+        const ambientLight = new THREE.AmbientLight(0x333333);
+        scene.add(ambientLight);
+        const sunLight = new THREE.PointLight(0xffffff, 2, 800); // Sun is the light source
+        scene.add(sunLight);
+
+        // Interactability
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        const planetsList = []; // For click detection
+
+        // --- 2. HELPER FUNCTIONS ---
+        
+        function createOrbit(radius) {
+            const geometry = new THREE.RingGeometry(radius, radius + 0.2, 64);
+            const material = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, transparent: true, opacity: 0.1 });
+            const orbit = new THREE.Mesh(geometry, material);
+            orbit.rotation.x = Math.PI / 2;
+            scene.add(orbit);
+        }
+
+        function createMoon(size, distance, color, speed, parentObj) {
+            const moonGeo = new THREE.SphereGeometry(size, 16, 16);
+            const moonMat = new THREE.MeshStandardMaterial({ color: color });
+            const moonMesh = new THREE.Mesh(moonGeo, moonMat);
+            
+            // Pivot for moon orbit
+            const moonPivot = new THREE.Object3D();
+            moonPivot.add(moonMesh);
+            parentObj.add(moonPivot);
+            moonMesh.position.x = distance;
+            
+            return { mesh: moonMesh, pivot: moonPivot, speed: speed };
+        }
+
+        function createPlanet(data) {
+            // Planet Group (holds mesh and self-rotation)
+            const planetObj = new THREE.Object3D();
+            
+            // Orbit Group (holds the planet at a distance and rotates around sun)
+            const orbitGroup = new THREE.Object3D();
+            orbitGroup.add(planetObj);
+            scene.add(orbitGroup);
+            
+            createOrbit(data.distance); // Visual Orbit Line
+
+            // Planet Mesh
+            const geometry = new THREE.SphereGeometry(data.size, 32, 32);
+            const material = new THREE.MeshStandardMaterial({ 
+                color: data.color,
+                roughness: 0.7,
+                emissive: data.emissive || 0x000000,
+                emissiveIntensity: 0.2
+            });
+            const mesh = new THREE.Mesh(geometry, material);
+            planetObj.add(mesh);
+            planetObj.position.x = data.distance;
+
+            // Store data for clicking
+            mesh.userData = { name: data.name, desc: data.desc, moons: data.moons ? data.moons.length : 0 };
+            planetsList.push(mesh);
+
+            // Create Moons if any
+            const moonObjects = [];
+            if(data.moons) {
+                data.moons.forEach(m => {
+                    moonObjects.push(createMoon(m.size, m.distance, m.color, m.speed, planetObj));
+                });
+            }
+
+            return { 
+                orbitGroup: orbitGroup, 
+                mesh: mesh, 
+                orbitSpeed: data.orbitSpeed, 
+                rotSpeed: data.rotSpeed,
+                moons: moonObjects 
+            };
+        }
+
+        // --- 3. PLANET DATA & CREATION ---
+
+        // The Sun
+        const sunGeo = new THREE.SphereGeometry(10, 32, 32);
+        const sunMat = new THREE.MeshBasicMaterial({ color: 0xffcc00 }); // Glowing Sun
+        const sun = new THREE.Mesh(sunGeo, sunMat);
+        scene.add(sun);
+        // Sun Glow
+        const sunGlow = new THREE.Mesh(new THREE.SphereGeometry(12, 32, 32), new THREE.MeshBasicMaterial({color: 0xffaa00, transparent:true, opacity:0.3}));
+        scene.add(sunGlow);
+
+        const celestialBodies = [];
+
+        // ----- START: PLANET DEFINITIONS -----
+        
+        // 1. Mercury (বুধ)
+        celestialBodies.push(createPlanet({
+            name: "বুধ (Mercury)",
+            desc: "সৌরজগতের ক্ষুদ্রতম এবং সূর্যের নিকটতম গ্রহ। এর কোনো বায়ুমন্ডল নেই।",
+            size: 2,
+            distance: 20,
+            color: 0xaaaaaa, // Grey
+            orbitSpeed: 0.02,
+            rotSpeed: 0.004
+        }));
+
+        // 2. Venus (শুক্র)
+        celestialBodies.push(createPlanet({
+            name: "শুক্র (Venus)",
+            desc: "সবচেয়ে উষ্ণ গ্রহ। এটি পূর্ব থেকে পশ্চিমে ঘোরে (বিপরীত দিকে)।",
+            size: 3.5,
+            distance: 35,
+            color: 0xe6a817, // Orange-Yellow
+            orbitSpeed: 0.015,
+            rotSpeed: 0.002
+        }));
+
+        // 3. Earth (পৃথিবী)
+        celestialBodies.push(createPlanet({
+            name: "পৃথিবী (Earth)",
+            desc: "আমাদের আবাসস্থল। একমাত্র গ্রহ যেখানে প্রাণ আছে।",
+            size: 3.8,
+            distance: 50,
+            color: 0x2233ff, // Blue
+            emissive: 0x112244,
+            orbitSpeed: 0.01,
+            rotSpeed: 0.02,
+            moons: [
+                { size: 1, distance: 6, color: 0xffffff, speed: 0.05 } // The Moon
+            ]
+        }));
+
+        // ---------- পরবর্তী গ্রহগুলো এখানে যুক্ত হবে (NEXT CODE GOES HERE) -----------
+      // 4. Mars (মঙ্গল)
+        celestialBodies.push(createPlanet({
+            name: "মঙ্গল (Mars)",
+            desc: "লাল গ্রহ। এর মাটিতে প্রচুর আয়রন অক্সাইড থাকায় একে লাল দেখায়।",
+            size: 2.5,
+            distance: 70,
+            color: 0xff3300, // Red
+            orbitSpeed: 0.008,
+            rotSpeed: 0.004,
+            moons: [
+                { size: 0.4, distance: 3.5, color: 0x888888, speed: 0.1 }, // Phobos
+                { size: 0.3, distance: 5, color: 0x555555, speed: 0.08 }   // Deimos
+            ]
+        }));
+
+        // 5. Jupiter (বৃহস্পতি)
+        celestialBodies.push(createPlanet({
+            name: "বৃহস্পতি (Jupiter)",
+            desc: "সৌরজগতের বৃহত্তম গ্রহ। এটি মূলত গ্যাস দিয়ে তৈরি (Gas Giant)।",
+            size: 9, // Huge size
+            distance: 100,
+            color: 0xd8ca9d, // Beige/Brownish
+            orbitSpeed: 0.004,
+            rotSpeed: 0.008,
+            moons: [
+                { size: 1.2, distance: 11, color: 0xdddddd, speed: 0.04 }, // Io
+                { size: 1.0, distance: 13, color: 0xaabbcc, speed: 0.03 }, // Europa
+                { size: 1.5, distance: 16, color: 0xddccaa, speed: 0.02 }, // Ganymede
+                { size: 1.4, distance: 20, color: 0x556677, speed: 0.01 }  // Callisto
+            ]
+        }));
+
+        // 6. Saturn (শনি) - With Rings
+        const saturnData = createPlanet({
+            name: "শনি (Saturn)",
+            desc: "এর সুন্দর বলয় বা রিং আছে। এটিও একটি গ্যাসীয় দানব।",
+            size: 8,
+            distance: 140,
+            color: 0xeaddcf, // Pale gold
+            orbitSpeed: 0.003,
+            rotSpeed: 0.007,
+            moons: [
+                { size: 1.5, distance: 18, color: 0xeecfa1, speed: 0.02 } // Titan
+            ]
+        });
+        
+        // শনির বলয় (Ring) তৈরির বিশেষ কোড
+        const ringGeo = new THREE.RingGeometry(10, 16, 64);
+        const ringMat = new THREE.MeshBasicMaterial({ 
+            color: 0xafa090, 
+            side: THREE.DoubleSide, 
+            transparent: true, 
+            opacity: 0.7 
+        });
+        const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+        ringMesh.rotation.x = Math.PI / 2; // শোয়ানো আবস্থায় রাখা
+        saturnData.mesh.add(ringMesh); // শনি গ্রহের সাথে যুক্ত করা হলো
+        
+        celestialBodies.push(saturnData);
+
+
+        // 7. Uranus (ইউরেনাস)
+        celestialBodies.push(createPlanet({
+            name: "ইউরেনাস (Uranus)",
+            desc: "এটি একটি বরফ দানব (Ice Giant)। এর রং নীলচে-সবুজ।",
+            size: 6,
+            distance: 180,
+            color: 0xaec3cc, // Light Blue/Cyan
+            orbitSpeed: 0.002,
+            rotSpeed: 0.006,
+            moons: [
+                { size: 0.6, distance: 9, color: 0xffffff, speed: 0.03 },
+                { size: 0.5, distance: 11, color: 0xeeeeee, speed: 0.02 }
+            ]
+        }));
+
+        // 8. Neptune (নেপচুন)
+        celestialBodies.push(createPlanet({
+            name: "নেপচুন (Neptune)",
+            desc: "সৌরজগতের সবচেয়ে দূরের গ্রহ। এখানে প্রচুর ঝড় হয়।",
+            size: 5.8,
+            distance: 215,
+            color: 0x3e54e8, // Deep Blue
+            orbitSpeed: 0.001,
+            rotSpeed: 0.006,
+            moons: [
+                { size: 0.8, distance: 10, color: 0xbbccff, speed: 0.02 } // Triton
+            ]
+        }));
+
+        
+        // --- 4. ANIMATION LOOP ---
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Sun rotation
+            sun.rotation.y += 0.002;
+
+            // Planets Animation
+            celestialBodies.forEach(obj => {
+                // Orbit around Sun
+                obj.orbitGroup.rotation.y += obj.orbitSpeed;
+                // Self Rotation
+                obj.mesh.rotation.y += obj.rotSpeed;
+                
+                // Moons Animation
+                if(obj.moons) {
+                    obj.moons.forEach(m => {
+                        m.pivot.rotation.y += m.speed;
+                    });
+                }
+            });
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // --- 5. CLICK HANDLER ---
+        window.addEventListener('click', (event) => {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(planetsList);
+            
+            const panel = document.getElementById('info-panel');
+            if(intersects.length > 0) {
+                const data = intersects[0].object.userData;
+                document.getElementById('p-name').innerText = data.name;
+                document.getElementById('p-desc').innerText = data.desc;
+                document.getElementById('p-moons').innerText = data.moons;
+                panel.style.display = 'block';
+            } else {
+                panel.style.display = 'none';
+            }
+        });
+
+        // Resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth/window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+    </script>
+</body>
+</html>
