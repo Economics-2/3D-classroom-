@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>জীবের আবাসস্থল (Mobile Friendly)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #f0f9ff;
+            --card-width: 280px;
+            --card-height: 400px;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Hind Siliguri', sans-serif;
+            background-color: var(--bg-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        h1 {
+            color: #1e3a8a;
+            margin: 20px 0 10px 0;
+            text-align: center;
+        }
+        
+        p.subtitle {
+            text-align: center;
+            color: #64748b;
+            margin-bottom: 30px;
+        }
+
+        /* --- 3D SLIDER CONTAINER --- */
+        .slider-container {
+            display: flex;
+            gap: 20px;
+            overflow-x: auto;
+            width: 100%;
+            padding: 20px 40px; /* Space for shadow */
+            scroll-snap-type: x mandatory; /* Mobile Swipe Effect */
+            -webkit-overflow-scrolling: touch;
+            perspective: 1000px; /* Creates the 3D depth */
+        }
+
+        /* Hide Scrollbar */
+        .slider-container::-webkit-scrollbar { display: none; }
+        .slider-container { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* --- THE CARD --- */
+        .card {
+            flex: 0 0 var(--card-width);
+            height: var(--card-height);
+            border-radius: 20px;
+            position: relative;
+            scroll-snap-align: center;
+            transition: transform 0.5s ease;
+            transform-style: preserve-3d;
+            cursor: pointer;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            overflow: hidden;
+            background: white;
+            border: 4px solid white;
+        }
+
+        /* Hover/Focus Effect for 3D Feel */
+        .card:hover {
+            transform: translateY(-10px) rotateX(5deg);
+        }
+
+        /* --- CARD CONTENT DESIGN --- */
+        .card-visual {
+            height: 60%;
+            width: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 1. FOREST Design */
+        .forest-bg { background: linear-gradient(to bottom, #a7f3d0, #059669); }
+        .forest-tree {
+            font-size: 5rem;
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            animation: sway 3s infinite ease-in-out;
+            text-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        .forest-animal {
+            font-size: 2.5rem;
+            position: absolute;
+            bottom: 10px;
+            right: 20px;
+        }
+
+        /* 2. DESERT Design */
+        .desert-bg { background: linear-gradient(to bottom, #fde68a, #d97706); }
+        .desert-sun {
+            width: 60px; height: 60px;
+            background: #fbbf24;
+            border-radius: 50%;
+            position: absolute;
+            top: 20px; right: 20px;
+            box-shadow: 0 0 30px #f59e0b;
+            animation: pulse 2s infinite;
+        }
+        .desert-cactus {
+            font-size: 5rem;
+            position: absolute;
+            bottom: 10px;
+            left: 30px;
+        }
+
+        /* 3. WATER Design */
+        .water-bg { background: linear-gradient(to bottom, #bae6fd, #0284c7); }
+        .water-wave {
+            position: absolute;
+            bottom: 0;
+            width: 200%;
+            height: 40px;
+            background: rgba(255,255,255,0.3);
+            animation: wave 4s linear infinite;
+        }
+        .water-fish {
+            font-size: 3rem;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            animation: swim 5s linear infinite;
+        }
+
+        /* --- TEXT SECTION --- */
+        .card-info {
+            padding: 20px;
+            text-align: center;
+            background: white;
+            height: 40%;
+        }
+
+        .card-info h2 {
+            margin: 0;
+            color: #334155;
+            font-size: 1.5rem;
+        }
+        
+        .card-info p {
+            color: #64748b;
+            font-size: 0.9rem;
+            margin-top: 10px;
+        }
+
+        .btn-learn {
+            margin-top: 15px;
+            padding: 8px 20px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        /* --- ANIMATIONS --- */
+        @keyframes sway { 0%, 100% { transform: translateX(-50%) rotate(0deg); } 50% { transform: translateX(-50%) rotate(5deg); } }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+        @keyframes wave { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+        @keyframes swim { 
+            0% { transform: translate(-150px, 0); opacity: 0; } 
+            20% { opacity: 1; }
+            80% { opacity: 1; }
+            100% { transform: translate(150px, -20px); opacity: 0; } 
+        }
+
+        /* --- MODAL (POPUP) --- */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            max-width: 400px;
+            text-align: center;
+            animation: popIn 0.3s ease;
+        }
+        @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+    </style>
+</head>
+<body>
+
+    <h1>🌍 জীবের আবাসস্থল</h1>
+    <p class="subtitle">কার্ডগুলো সোয়াইপ (Swipe) করে দেখো</p>
+
+    <div class="slider-container">
+        
+        <div class="card" onclick="openModal('forest')">
+            <div class="card-visual forest-bg">
+                <div class="forest-tree">🌳</div>
+                <div class="forest-animal">🦌</div>
+                </div>
+            <div class="card-info">
+                <h2>বনভূমি</h2>
+                <p>সবুজ গাছপালা আর বন্য প্রাণীদের নিরাপদ বাসা।</p>
+                <button class="btn-learn">বিস্তারিত</button>
+            </div>
+        </div>
+
+        <div class="card" onclick="openModal('desert')">
+            <div class="card-visual desert-bg">
+                <div class="desert-sun"></div>
+                <div class="desert-cactus">🌵</div>
+                <div style="font-size: 3rem; position: absolute; bottom: 20px; right: 20px;">🐫</div>
+            </div>
+            <div class="card-info">
+                <h2>মরুভূমি</h2>
+                <p>বালুময় গরম এলাকা যেখানে পানি খুব কম।</p>
+                <button class="btn-learn">বিস্তারিত</button>
+            </div>
+        </div>
+
+        <div class="card" onclick="openModal('water')">
+            <div class="card-visual water-bg">
+                <div class="water-wave"></div>
+                <div class="water-fish">🐠</div>
+                <div style="font-size: 4rem; position: absolute; bottom: 40px; right: 80px;">🪷</div>
+            </div>
+            <div class="card-info">
+                <h2>জলাশয়</h2>
+                <p>মাছ, ব্যাঙ আর জলজ উদ্ভিদের পানির পৃথিবী।</p>
+                <button class="btn-learn">বিস্তারিত</button>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="infoModal" class="modal">
+        <div class="modal-content">
+            <h2 id="modalTitle" style="color: #1e3a8a;">শিরোনাম</h2>
+            <p id="modalDesc" style="color: #64748b; line-height: 1.6;">বিস্তারিত...</p>
+            <button onclick="closeModal()" style="margin-top: 20px; padding: 10px 30px; background: #ef4444; color: white; border: none; border-radius: 50px; font-weight: bold;">বন্ধ করুন</button>
+        </div>
+    </div>
+
+    <script>
+        // Data for the popup
+        const data = {
+            forest: {
+                title: "🌳 বনভূমি (Forest)",
+                desc: "বনের পরিবেশ সাধারণত সবুজ এবং ঠান্ডা থাকে। এখানে প্রচুর গাছপালা জন্মে। বাঘ, ভাল্লুক, হরিণ, বানর এবং নানা প্রজাতির পাখি এখানে বাস করে। সুন্দরবন আমাদের দেশের সবচেয়ে বড় বন।"
+            },
+            desert: {
+                title: "🌵 মরুভূমি (Desert)",
+                desc: "মরুভূমি অত্যন্ত শুষ্ক এবং গরম এলাকা। এখানে বৃষ্টিপাত খুব কম হয়। ক্যাকটাসের মতো কাঁটাযুক্ত গাছ এখানে জন্মে। উটকে মরুভূমির জাহাজ বলা হয় কারণ তারা পানি ছাড়াই অনেকদিন চলতে পারে।"
+            },
+            water: {
+                title: "💧 জলাশয় (Water Body)",
+                desc: "পুকুর, নদী, খাল এবং সমুদ্র হলো জলাশয়। এখানে মাছ, কাঁকড়া, শামুক এবং শাপলার মতো উদ্ভিদ জন্মায়। পানির নিচেও একটি বিশাল জগত রয়েছে যেখানে প্রাণীরা অক্সিজেন নিয়ে বেঁচে থাকে।"
+            }
+        };
+
+        const modal = document.getElementById('infoModal');
+        const mTitle = document.getElementById('modalTitle');
+        const mDesc = document.getElementById('modalDesc');
+
+        function openModal(type) {
+            mTitle.innerText = data[type].title;
+            mDesc.innerText = data[type].desc;
+            modal.style.display = 'flex';
+        }
+
+        function closeModal() {
+            modal.style.display = 'none';
+        }
+
+        // Close modal if clicked outside box
+        window.onclick = function(event) {
+            if (event.target == modal) {
+                closeModal();
+            }
+        }
+    </script>
+
+</body>
+</html>
