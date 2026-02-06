@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Human Body Mind Map</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000510; /* গাঢ় নীল/কালো ব্যাকগ্রাউন্ড */
+            font-family: 'Roboto', sans-serif;
+        }
+        /* হাই-টেক টাইটেল */
+        #main-title {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #00eaff;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 24px;
+            pointer-events: none;
+            text-shadow: 0 0 10px #00eaff;
+        }
+
+        /* বিবরণ দেখানোর পপ-আপ (Modal) */
+        #info-modal {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 300px;
+            background: rgba(0, 10, 30, 0.9); /* স্বচ্ছ নীল ব্যাকগ্রাউন্ড */
+            border: 2px solid #00eaff;
+            box-shadow: 0 0 20px rgba(0, 234, 255, 0.5);
+            padding: 20px;
+            border-radius: 10px;
+            color: #fff;
+            display: none; /* শুরুতে লুকানো থাকবে */
+            backdrop-filter: blur(5px);
+            z-index: 100;
+        }
+        #info-modal h2 {
+            font-family: 'Orbitron', sans-serif;
+            color: #00eaff;
+            margin-top: 0;
+            border-bottom: 1px solid rgba(0, 234, 255, 0.3);
+            padding-bottom: 10px;
+        }
+        #close-btn {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            color: #00eaff;
+            cursor: pointer;
+            font-weight: bold;
+            font-family: 'Orbitron', sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <div id="main-title">HUMAN BIO-INTERFACE // Mind Map v1.0</div>
+
+    <div id="info-modal">
+        <div id="close-btn">X</div>
+        <h2 id="modal-title">Organ Name</h2>
+        <p id="modal-desc">Description goes here...</p>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+        let scene, camera, renderer, controls, raycaster, mouse;
+        let centralNode;
+        const organNodes = []; // সব অর্গান বাবল এখানে জমা থাকবে
+        const clock = new THREE.Clock();
+
+        // অর্গানগুলোর ডেটা
+        const organData = [
+            { name: "মস্তিষ্ক (Brain)", desc: "দেহের নিয়ন্ত্রণ কেন্দ্র। চিন্তাভাবনা ও স্মৃতিশক্তি নিয়ন্ত্রণ করে।", color: 0xff0055, shape: 'torus' },
+            { name: "হৃৎপিণ্ড (Heart)", desc: "সারা শরীরে রক্ত পাম্প করে। অবিরাম স্পন্দিত হয়।", color: 0xff3300, shape: 'octahedron' },
+            { name: "ফুসফুস (Lungs)", desc: "শ্বাস-প্রশ্বাসে সাহায্য করে এবং রক্তে অক্সিজেন সরবরাহ করে।", color: 0x00ffaa, shape: 'sphere' },
+            { name: "যকৃৎ (Liver)", desc: "রক্ত থেকে ক্ষতিকারক পদার্থ দূর করে এবং হজমে সাহায্য করে।", color: 0xaa00ff, shape: 'box' },
+            { name: "কিডনি (Kidneys)", desc: "রক্ত ছেঁকে বর্জ্য পদার্থ প্রস্রাব হিসেবে বের করে দেয়।", color: 0xffff00, shape: 'dodecahedron' }
+        ];
+
+        init();
+        animate();
+
+        function init() {
+            // ১. সিন সেটআপ (Scene Setup)
+            scene = new THREE.Scene();
+            // হাই-টেক কুয়াশা ইফেক্ট
+            scene.fog = new THREE.FogExp2(0x000510, 0.02);
+
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 5, 35);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            document.body.appendChild(renderer.domElement);
+
+            // আলো (Lights) - নীল এবং সাদা ভাব আনার জন্য
+            const ambientLight = new THREE.AmbientLight(0x404040, 2);
+            scene.add(ambientLight);
+            const pointLight1 = new THREE.PointLight(0x00eaff, 2, 50);
+            pointLight1.position.set(10, 10, 10);
+            scene.add(pointLight1);
+            const pointLight2 = new THREE.PointLight(0xffffff, 1, 50);
+            pointLight2.position.set(-10, -10, -10);
+            scene.add(pointLight2);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.autoRotate = true; // পুরো দৃশ্যটি ধীরে ধীরে ঘুরবে
+            controls.autoRotateSpeed = 0.5;
+
+            // ২. কেন্দ্রীয় নোড তৈরি (Central Node - Human Body)
+            createCentralNode();
+
+            // ৩. অর্গান বাবল তৈরি (Organ Bubbles)
+            organData.forEach((data, index) => {
+                createOrganNode(data, index, organData.length);
+            });
+
+            // ৪. ইন্টারঅ্যাকশন সেটআপ (Raycaster for clicks)
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2();
+            window.addEventListener('click', onMouseClick, false);
+            window.addEventListener('resize', onWindowResize, false);
+            
+            // মোডাল বন্ধ করার বাটন
+            document.getElementById('close-btn').addEventListener('click', () => {
+                document.getElementById('info-modal').style.display = 'none';
+            });
+        }
+
+        function createCentralNode() {
+            // কেন্দ্রের উজ্জ্বল গোলক
+            const geometry = new THREE.SphereGeometry(3, 32, 32);
+            const material = new THREE.MeshPhongMaterial({
+                color: 0x00eaff,
+                emissive: 0x007a85,
+                transparent: true,
+                opacity: 0.8,
+                shininess: 100
+            });
+            centralNode = new THREE.Mesh(geometry, material);
+            scene.add(centralNode);
+
+            // কেন্দ্রের চারপাশে একটি উজ্জ্বল রিং (Glow Ring)
+            const ringGeo = new THREE.TorusGeometry(4.5, 0.1, 16, 100);
+            const ringMat = new THREE.MeshBasicMaterial({ color: 0x00eaff, transparent: true, opacity: 0.6 });
+            const ring = new THREE.Mesh(ringGeo, ringMat);
+            centralNode.add(ring);
+            
+            // রিংটি ঘোরানোর জন্য অ্যানিমেশনে যুক্ত হবে
+            centralNode.userData.ring = ring;
+        }
+
+        function createOrganNode(data, index, total) {
+            const group = new THREE.Group();
+            
+            // অবস্থান নির্ধারণ (কেন্দ্রের চারপাশে বৃত্তাকারে সাজানো)
+            const radius = 15 + Math.random() * 5; // কেন্দ্র থেকে দূরত্ব
+            const angle = (index / total) * Math.PI * 2;
+            const x = Math.cos(angle) * radius;
+            const z = Math.sin(angle) * radius;
+            const y = (Math.random() - 0.5) * 10; // কিছুটা উপরে নিচে ছড়ানো
+            group.position.set(x, y, z);
+
+            // ক) বাইরের স্বচ্ছ বাবল (Floating Bubble)
+            const bubbleGeo = new THREE.SphereGeometry(2.5, 32, 32);
+            const bubbleMat = new THREE.MeshPhongMaterial({
+                color: 0x88ccff,
+                transparent: true,
+                opacity: 0.3,
+                shininess: 150,
+                side: THREE.DoubleSide
+            });
+            const bubble = new THREE.Mesh(bubbleGeo, bubbleMat);
+            // ক্লিক শনাক্ত করার জন্য ডেটা যুক্ত করা হলো
+            bubble.userData = { isOrgan: true, name: data.name, desc: data.desc };
+            group.add(bubble);
+            organNodes.push(bubble); // রেয়কাস্টিংয়ের জন্য সংরক্ষণ
+
+            // খ) বাবলের ভেতরের ঘূর্ণায়মান বস্তু (Rotating Organ Placeholder)
+            let organGeo;
+            // বিভিন্ন আকৃতি তৈরি করা (আসল অর্গান মডেলের পরিবর্তে)
+            switch(data.shape) {
+                case 'torus': organGeo = new THREE.TorusGeometry(1, 0.4, 16, 32); break;
+                case 'octahedron': organGeo = new THREE.OctahedronGeometry(1.5); break;
+                case 'box': organGeo = new THREE.BoxGeometry(1.8, 1.8, 1.8); break;
+                case 'dodecahedron': organGeo = new THREE.DodecahedronGeometry(1.5); break;
+                default: organGeo = new THREE.SphereGeometry(1.2, 16, 16);
+            }
+            const organMat = new THREE.MeshStandardMaterial({
+                color: data.color,
+                emissive: data.color,
+                emissiveIntensity: 0.5,
+                metalness: 0.7,
+                roughness: 0.2,
+                wireframe: true // হাই-টেক লুকের জন্য ওয়্যারফ্রেম
+            });
+            const organMesh = new THREE.Mesh(organGeo, organMat);
+            group.add(organMesh);
+            // অ্যানিমেশনের জন্য রেফারেন্স রাখা
+            bubble.userData.innerMesh = organMesh;
+
+            // গ) সংযোগকারী উজ্জ্বল লাইন (Glowing Connecting Line)
+            const lineMat = new THREE.LineBasicMaterial({ color: 0x00eaff, transparent: true, opacity: 0.5, linewidth: 2 });
+            const points = [];
+            points.push(new THREE.Vector3(0, 0, 0)); // কেন্দ্র
+            points.push(new THREE.Vector3(x, y, z)); // বাবল
+            const lineGeo = new THREE.BufferGeometry().setFromPoints(points);
+            const line = new THREE.Line(lineGeo, lineMat);
+            scene.add(line);
+            
+            // অ্যানিমেশনের জন্য প্রাথমিক অবস্থান সংরক্ষণ (ভাসানোর জন্য)
+            group.userData.initialPos = group.position.clone();
+            group.userData.floatSpeed = 0.5 + Math.random();
+            group.userData.floatOffset = Math.random() * Math.PI * 2;
+
+            scene.add(group);
+        }
+
+        // মাউস ক্লিক হ্যান্ডলার
+        function onMouseClick(event) {
+            // মাউস পজিশন নরমালাইজ করা (-1 থেকে +1)
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(organNodes);
+
+            if (intersects.length > 0) {
+                const clickedBubble = intersects[0].object;
+                showModal(clickedBubble.userData.name, clickedBubble.userData.desc);
+                // ক্লিক করলে কন্ট্রোলের অটো-রোটেট বন্ধ হবে
+                controls.autoRotate = false;
+            }
+        }
+
+        function showModal(title, desc) {
+            const modal = document.getElementById('info-modal');
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-desc').innerText = desc;
+            modal.style.display = 'block';
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const time = clock.getElapsedTime();
+
+            // ১. কেন্দ্রীয় রিং ঘোরানো
+            if(centralNode.userData.ring) {
+                centralNode.userData.ring.rotation.x += 0.01;
+                centralNode.userData.ring.rotation.y += 0.005;
+            }
+
+            // ২. অর্গানগুলোর অ্যানিমেশন (ঘোরা এবং ভাসানো)
+            organNodes.forEach(bubble => {
+                const group = bubble.parent;
+                const innerMesh = bubble.userData.innerMesh;
+
+                // ক) ভেতরের বস্তুটি ঘোরানো
+                innerMesh.rotation.x += 0.02;
+                innerMesh.rotation.y += 0.01;
+
+                // খ) পুরো বাবলটিকে ভাসানো (Floating Animation)
+                group.position.y = group.userData.initialPos.y + Math.sin(time * group.userData.floatSpeed + group.userData.floatOffset) * 1.5;
+            });
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
+</html>
