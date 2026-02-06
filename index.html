@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BacBon SmartBoard - 5th Grade Science</title>
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-color: #2563eb; /* Blue */
+            --secondary-color: #10b981; /* Green */
+            --accent-color: #f59e0b; /* Orange/Yellow */
+            --dark-bg: #1e293b;
+            --light-bg: #f8fafc;
+            --text-dark: #1f2937;
+            --text-light: #ffffff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Hind Siliguri', sans-serif;
+            background-color: var(--light-bg);
+            color: var(--text-dark);
+            line-height: 1.6;
+        }
+
+        /* Hero Section */
+        .hero {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: var(--text-light);
+            padding: 80px 20px;
+            text-align: center;
+            border-bottom-left-radius: 50px;
+            border-bottom-right-radius: 50px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero h1 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            font-weight: 700;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            max-width: 800px;
+            margin: 0 auto 30px auto;
+            opacity: 0.9;
+        }
+
+        .hero-btn {
+            background-color: var(--accent-color);
+            color: var(--text-dark);
+            padding: 12px 30px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
+            transition: transform 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .hero-btn:hover {
+            transform: scale(1.05);
+            background-color: #fbbf24;
+        }
+
+        /* 3D Floating Badge Effect */
+        .badge-3d {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+            border: 1px solid rgba(255,255,255,0.4);
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+
+        /* Features Section */
+        .container {
+            max-width: 1200px;
+            margin: 50px auto;
+            padding: 0 20px;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 2rem;
+            color: var(--primary-color);
+            margin-bottom: 40px;
+            font-weight: 700;
+        }
+
+        /* Grid for Curriculum Topics */
+        .topic-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-bottom: 60px;
+        }
+
+        .topic-card {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 1px solid #e2e8f0;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .topic-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(37, 99, 235, 0.15);
+            border-color: var(--primary-color);
+        }
+
+        .topic-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        .topic-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: var(--text-dark);
+        }
+
+        .topic-desc {
+            font-size: 0.9rem;
+            color: #64748b;
+        }
+
+        /* "Live" Indicator on Card */
+        .live-tag {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background-color: #ef4444;
+            color: white;
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        /* Why Choose Us Section */
+        .why-choose {
+            background-color: white;
+            padding: 50px;
+            border-radius: 20px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .why-content {
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .why-list {
+            list-style: none;
+            margin-top: 20px;
+        }
+
+        .why-list li {
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .check-icon {
+            color: var(--secondary-color);
+            margin-right: 10px;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        .why-image {
+            flex: 1;
+            min-width: 300px;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .placeholder-screen {
+            background: #e2e8f0;
+            height: 250px;
+            width: 100%;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+            font-weight: bold;
+            border: 4px solid var(--text-dark);
+        }
+
+        /* Footer */
+        footer {
+            background-color: var(--dark-bg);
+            color: #94a3b8;
+            text-align: center;
+            padding: 30px;
+            margin-top: 50px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 2rem; }
+            .why-choose { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="hero">
+        <div class="badge-3d">✨ 3D Interactive Learning</div>
+        <h1>এবার বই শুধু দেখা নয়—বই হবে জীবন্ত!</h1>
+        <p>বাংলাদেশের NCTB কারিকুলাম অনুযায়ী ৫ম শ্রেণির প্রাথমিক বিজ্ঞান বই। যেখানে জীববিজ্ঞানসহ যেকোনো অধ্যায়ের ছবি মাত্র এক ক্লিকেই রূপ নেয় 3D ও অ্যানিমেটেড জীবন্ত কনটেন্টে।</p>
+        <a href="#topics" class="hero-btn">ডেমো দেখুন</a>
+    </header>
+
+    <section id="topics" class="container">
+        <h2 class="section-title">সব বিষয়ের 3D কন্টেন্ট এখন হাতের মুঠোয়</h2>
+        
+        <div class="topic-grid">
+            <div class="topic-card">
+                <span class="live-tag">3D Ready</span>
+                <span class="topic-icon">🌍</span>
+                <h3 class="topic-title">জীবের আবাসস্থল</h3>
+                <p class="topic-desc">বন, মরুভূমি বা জলাশয়—প্রতিটি পরিবেশ এক্সপ্লোর করুন জীবন্তভাবে।</p>
+            </div>
+
+            <div class="topic-card">
+                <span class="live-tag">Animated</span>
+                <span class="topic-icon">🍎</span>
+                <h3 class="topic-title">খাদ্য শৃঙ্খল বা খাদ্য জাল</h3>
+                <p class="topic-desc">কে কাকে খাচ্ছে? খাদ্য শৃঙ্খলের প্রতিটি ধাপ দেখুন অ্যানিমেশনে।</p>
+            </div>
+
+            <div class="topic-card">
+                <span class="live-tag">Interactive</span>
+                <span class="topic-icon">🧪</span>
+                <h3 class="topic-title">পদার্থের গঠন ও শক্তি</h3>
+                <p class="topic-desc">অণু-পরামাণুর গঠন এবং শক্তির রূপান্তর বুঝুন সহজেই।</p>
+            </div>
+
+            <div class="topic-card">
+                <span class="live-tag">3D Model</span>
+                <span class="topic-icon">⚖️🌏</span>
+                <h3 class="topic-title">বল ও পৃথিবীর গতি</h3>
+                <p class="topic-desc">পৃথিবী কিভাবে ঘোরে? দিন-রাত ও ঋতু পরিবর্তন দেখুন নিজের চোখে।</p>
+            </div>
+
+            <div class="topic-card">
+                <span class="live-tag">Simulated</span>
+                <span class="topic-icon">🌱🌦️</span>
+                <h3 class="topic-title">পরিবেশ ও জলবায়ু</h3>
+                <p class="topic-desc">পরিবেশ সংরক্ষণ ও জলবায়ু পরিবর্তনের প্রভাবগুলো জানুন।</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="container">
+        <div class="why-choose">
+            <div class="why-content">
+                <h2 style="color: var(--text-dark); margin-bottom: 20px;">🎯 কেন BacBon SmartBoard?</h2>
+                <ul class="why-list">
+                    <li><span class="check-icon">✅</span> NCTB কারিকুলাম অনুযায়ী কনটেন্ট</li>
+                    <li><span class="check-icon">✅</span> 3D অ্যানিমেশন ও ভিজুয়াল লার্নিং</li>
+                    <li><span class="check-icon">✅</span> স্মার্ট ক্লাসরুমের জন্য আদর্শ</li>
+                    <li><span class="check-icon">✅</span> শিক্ষার্থীদের শেখায় আগ্রহ বাড়ায়</li>
+                </ul>
+                <br>
+                <a href="#" style="color: var(--primary-color); font-weight: bold; text-decoration: none;">বিস্তারিত জানুন &rarr;</a>
+            </div>
+            <div class="why-image">
+                <div class="placeholder-screen">
+                    SmartBoard Demo Video
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <p>&copy; 2024 BacBon SmartBoard. All Rights Reserved.</p>
+        <p style="font-size: 0.8rem; margin-top: 10px;">Education for Future Bangladesh</p>
+    </footer>
+
+</body>
+</html>
