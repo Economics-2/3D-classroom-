@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>অ্যানিমেটেড খাদ্য শৃঙ্খল</title>
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-sky: #87CEEB;
+            --bg-ground: #4ade80;
+            --card-bg: white;
+        }
+
+        body {
+            font-family: 'Hind Siliguri', sans-serif;
+            margin: 0;
+            background: linear-gradient(to bottom, var(--bg-sky) 60%, var(--bg-ground) 60%);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Title & HUD */
+        header {
+            margin-top: 20px;
+            text-align: center;
+            z-index: 10;
+        }
+        h1 {
+            color: #1e3a8a;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 10px 30px;
+            border-radius: 50px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            margin: 0;
+        }
+
+        /* Main Stage */
+        .chain-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px; /* Space between items */
+            margin-top: 10%;
+            position: relative;
+            width: 90%;
+            max-width: 1200px;
+        }
+
+        /* Individual Organism Card */
+        .organism {
+            background: white;
+            border-radius: 15px;
+            padding: 15px;
+            text-align: center;
+            width: 140px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+            opacity: 0; /* Hidden initially */
+            transform: translateY(30px);
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            z-index: 2;
+        }
+
+        .organism.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .emoji-box {
+            font-size: 4rem;
+            margin-bottom: 10px;
+            display: block;
+            transition: transform 0.2s;
+        }
+
+        .organism:hover .emoji-box {
+            transform: scale(1.2);
+        }
+
+        .role-badge {
+            background: #2563eb;
+            color: white;
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-bottom: 5px;
+        }
+
+        .name {
+            font-weight: bold;
+            color: #374151;
+            display: block;
+        }
+
+        /* Arrows */
+        .arrow {
+            font-size: 2rem;
+            color: #d97706;
+            opacity: 0;
+            transition: opacity 0.5s;
+            font-weight: bold;
+        }
+        .arrow.visible {
+            opacity: 1;
+        }
+
+        /* Energy Particle Animation */
+        .energy-particle {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: radial-gradient(circle, #facc15, #ca8a04);
+            border-radius: 50%;
+            box-shadow: 0 0 15px #facc15;
+            z-index: 100;
+            display: none; /* Hidden by default */
+        }
+
+        /* Controls */
+        .controls {
+            margin-top: auto;
+            margin-bottom: 40px;
+            text-align: center;
+            z-index: 10;
+        }
+
+        .btn {
+            background: #f59e0b;
+            color: #1f2937;
+            border: none;
+            padding: 12px 30px;
+            font-size: 1.2rem;
+            border-radius: 50px;
+            cursor: pointer;
+            font-family: 'Hind Siliguri', sans-serif;
+            font-weight: bold;
+            box-shadow: 0 5px 15px rgba(245, 158, 11, 0.4);
+            transition: transform 0.2s;
+        }
+
+        .btn:hover { transform: scale(1.05); background: #fbbf24; }
+        .btn:disabled { background: #cbd5e1; cursor: not-allowed; box-shadow: none; transform: none;}
+
+        .info-text {
+            margin-top: 15px;
+            font-size: 1.2rem;
+            color: white;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            min-height: 30px;
+        }
+
+        /* Eating Animation Class */
+        .shake {
+            animation: shake 0.5s;
+        }
+
+        @keyframes shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            10% { transform: translate(-1px, -2px) rotate(-1deg); }
+            20% { transform: translate(-3px, 0px) rotate(1deg); }
+            30% { transform: translate(3px, 2px) rotate(0deg); }
+            40% { transform: translate(1px, -1px) rotate(1deg); }
+            50% { transform: translate(-1px, 2px) rotate(-1deg); }
+            60% { transform: translate(-3px, 1px) rotate(0deg); }
+            100% { transform: translate(0, 0) rotate(0deg); }
+        }
+        
+        /* Sun Rotation */
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .sun-spin { animation: spin 10s linear infinite; }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>♻️ খাদ্য শৃঙ্খল (Food Chain)</h1>
+    </header>
+
+    <div class="chain-container" id="chain-container">
+        </div>
+
+    <div id="energy" class="energy-particle"></div>
+
+    <div class="controls">
+        <p class="info-text" id="status-text">শুরু করতে নিচের বাটনে ক্লিক করো!</p>
+        <button class="btn" id="next-btn" onclick="nextStep()">▶ শুরু করো</button>
+        <button class="btn" id="reset-btn" onclick="resetChain()" style="background: #ef4444; color: white; display: none;">🔄 আবার দেখো</button>
+    </div>
+
+    <script>
+        // Data for the Food Chain
+        const chainData = [
+            { id: 0, name: "সূর্য", emoji: "☀️", role: "শক্তির উৎস", desc: "সকল শক্তির মূল উৎস হলো সূর্য।", class: "sun-spin" },
+            { id: 1, name: "ঘাস", emoji: "🌿", role: "উৎপাদক", desc: "উদ্ভিদ সূর্যের আলো ব্যবহার করে নিজের খাদ্য তৈরি করে।" },
+            { id: 2, name: "ঘাসফড়িং", emoji: "🦗", role: "১ম স্তরের খাদক", desc: "ঘাসফড়িং ঘাস খেয়ে বেঁচে থাকে (তৃণভোজী)।" },
+            { id: 3, name: "ব্যাঙ", emoji: "🐸", role: "২য় স্তরের খাদক", desc: "ব্যাঙ ঘাসফড়িংকে খেয়ে ফেলে (মাংসাশী)।" },
+            { id: 4, name: "সাপ", emoji: "🐍", role: "৩য় স্তরের খাদক", desc: "সাপ ব্যাঙকে শিকার করে খায়।" },
+            { id: 5, name: "ঈগল", emoji: "🦅", role: "সর্বোচ্চ খাদক", desc: "ঈগল সাপকে ধরে খায়। এটি খাদ্য শৃঙ্খলের শীর্ষে।" }
+        ];
+
+        let currentStep = -1;
+        const container = document.getElementById('chain-container');
+        const nextBtn = document.getElementById('next-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const statusText = document.getElementById('status-text');
+        const energyBall = document.getElementById('energy');
+
+        // Initialize empty slots based on data but don't show them
+        function init() {
+            container.innerHTML = '';
+            chainData.forEach((item, index) => {
+                // Create Card
+                const card = document.createElement('div');
+                card.className = 'organism';
+                card.id = `org-${index}`;
+                card.innerHTML = `
+                    <span class="emoji-box ${item.class || ''}">${item.emoji}</span>
+                    <span class="role-badge">${item.role}</span>
+                    <span class="name">${item.name}</span>
+                `;
+                container.appendChild(card);
+
+                // Create Arrow (except for the last one)
+                if (index < chainData.length - 1) {
+                    const arrow = document.createElement('div');
+                    arrow.className = 'arrow';
+                    arrow.id = `arrow-${index}`;
+                    arrow.innerHTML = '⮕';
+                    container.appendChild(arrow);
+                }
+            });
+        }
+
+        function nextStep() {
+            currentStep++;
+
+            if (currentStep < chainData.length) {
+                const item = chainData[currentStep];
+                
+                // If it's not the first item (Sun), animate energy transfer from previous
+                if (currentStep > 0) {
+                    animateEnergy(currentStep - 1, currentStep, () => {
+                        revealCard(currentStep);
+                        updateText(item.desc);
+                    });
+                } else {
+                    // Just reveal the Sun immediately
+                    revealCard(currentStep);
+                    updateText(item.desc);
+                    nextBtn.innerText = "পরবর্তী ধাপ ➡";
+                }
+
+            } else {
+                // Finished
+                statusText.innerText = "খাদ্য শৃঙ্খল সম্পন্ন হয়েছে!";
+                nextBtn.style.display = 'none';
+                resetBtn.style.display = 'inline-block';
+            }
+        }
+
+        function revealCard(index) {
+            const card = document.getElementById(`org-${index}`);
+            card.classList.add('active');
+            
+            // Show arrow connecting to previous if exists
+            if (index > 0) {
+                const arrow = document.getElementById(`arrow-${index-1}`);
+                if(arrow) arrow.classList.add('visible');
+                
+                // "Shake" effect on the predator (eating effect)
+                card.classList.add('shake');
+                setTimeout(() => card.classList.remove('shake'), 500);
+            }
+        }
+
+        function updateText(text) {
+            statusText.style.opacity = 0;
+            setTimeout(() => {
+                statusText.innerText = text;
+                statusText.style.opacity = 1;
+            }, 300);
+        }
+
+        function animateEnergy(fromIndex, toIndex, callback) {
+            const fromEl = document.getElementById(`org-${fromIndex}`);
+            const toEl = document.getElementById(`org-${toIndex}`); // Target doesn't exist visibly yet, but DOM node is there
+            
+            // Disable button during animation
+            nextBtn.disabled = true;
+
+            // Get positions
+            const startRect = fromEl.getBoundingClientRect();
+            // We approximate where the next card will be (it's currently invisible/hidden)
+            // But since it's in the DOM with opacity 0, we can get its rect (relative to viewport)
+            const endRect = toEl.getBoundingClientRect();
+
+            // Set initial position of ball
+            energyBall.style.display = 'block';
+            energyBall.style.left = (startRect.left + startRect.width/2 - 10) + 'px';
+            energyBall.style.top = (startRect.top + startRect.height/2 - 10) + 'px';
+
+            // Trigger animation
+            // Using Web Animations API for smooth JavaScript movement
+            const animation = energyBall.animate([
+                { left: (startRect.left + startRect.width/2 - 10) + 'px', top: (startRect.top + startRect.height/2 - 10) + 'px' },
+                { left: (endRect.left + endRect.width/2 - 10) + 'px', top: (endRect.top + endRect.height/2 - 10) + 'px' }
+            ], {
+                duration: 1000,
+                easing: 'cubic-bezier(0.4, 0.0, 0.2, 1)'
+            });
+
+            animation.onfinish = () => {
+                energyBall.style.display = 'none';
+                nextBtn.disabled = false;
+                callback();
+            };
+        }
+
+        function resetChain() {
+            currentStep = -1;
+            nextBtn.innerText = "▶ শুরু করো";
+            nextBtn.style.display = 'inline-block';
+            resetBtn.style.display = 'none';
+            statusText.innerText = "শুরু করতে নিচের বাটনে ক্লিক করো!";
+            
+            // Hide all cards
+            const cards = document.querySelectorAll('.organism');
+            cards.forEach(c => c.classList.remove('active'));
+            const arrows = document.querySelectorAll('.arrow');
+            arrows.forEach(a => a.classList.remove('visible'));
+        }
+
+        // Run init
+        init();
+
+    </script>
+</body>
+</html>
